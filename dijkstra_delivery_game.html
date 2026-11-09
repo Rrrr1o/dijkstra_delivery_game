@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="在送餐地图上练习迪杰斯特拉算法。选路口、更新距离、记录前驱，再回溯路线。">
+<title>路口骑士 · 迪杰斯特拉闯关</title>
+<style>
+:root{color-scheme:light;--ink:#193532;--mute:#506762;--green:#087b60;--deep:#075b49;--mint:#d9f4e9;--paper:#fafbf5;--white:#fff;--line:#dce9df;--blue:#3554b9;--sky:#eef2ff;--orange:#ad4d13;--sun:#fff0cf;--shadow:0 8px 26px #1b49370c}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif}
+button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid #3455d4;outline-offset:3px}button[hidden],section[hidden]{display:none}
+.wrap{max-width:1260px;margin:auto;padding:0 28px}
+.bar{background:#ffffffb0;border-bottom:1px solid var(--line)}.bar .wrap{display:flex;align-items:center;justify-content:space-between;min-height:66px;gap:15px}
+.brand,.record,.game-title,.head-line,.card-top,.tools,.legend,.quick-nodes,.route-chip,.stats{display:flex;align-items:center}.brand{gap:11px;font-size:17px;font-weight:850;letter-spacing:.05em}
+.logo{width:39px;height:39px;border-radius:13px;display:grid;place-items:center;background:var(--green);color:white}.logo svg{width:26px;height:26px}
+.record{gap:7px;color:var(--deep);background:#e4f4e9;border:1px solid #d3eade;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:800}
+.record svg{width:16px;height:16px}.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:24px 0 19px}
+.hero h1{margin:0 0 4px;font-size:clamp(34px,4vw,52px);font-weight:900;line-height:1.18;letter-spacing:-.05em}.hero p{margin:0;color:var(--mute);font-size:15px}
+.eyebrow{font-size:12px;font-weight:900;color:var(--green);letter-spacing:.14em;margin-bottom:7px}.game-title{gap:12px}.game-title svg{width:41px;height:41px;color:#f4a742;transform:rotate(-9deg)}
+.levels{display:flex;gap:8px;flex-wrap:wrap}.level{background:#fff;color:var(--mute);border:1px solid var(--line);border-radius:13px;padding:9px 12px;display:flex;gap:7px;align-items:center;font-size:13px;font-weight:800;white-space:nowrap}
+.level:hover{border-color:#82bda8}.level[aria-current="step"]{background:#e7f5ed;color:var(--deep);border-color:#81bba6}.level .num{display:grid;place-items:center;font-size:11px;width:23px;height:23px;border-radius:7px;background:#eff3ee;color:var(--mute)}.level[aria-current="step"] .num{background:var(--green);color:white}.level .done{color:var(--green)}
+.board{display:grid;grid-template-columns:minmax(0,1.73fr) minmax(320px,1fr);gap:17px;align-items:stretch}
+.card{background:var(--white);border:1px solid var(--line);border-radius:23px;box-shadow:var(--shadow);min-width:0}
+.card-top{justify-content:space-between;gap:12px;padding:15px 17px 12px}.card h2{margin:0;font-size:19px;letter-spacing:-.02em}.head-line{gap:8px}.head-line svg{width:20px;height:20px;color:var(--green)}
+.scenario{font-size:12px;color:var(--mute);margin-top:3px}.map-frame{margin:0 12px;overflow:hidden;border-radius:16px;border:1px solid #dfebe1;background:#eaf5e9}
+#map{display:block;width:100%;height:auto;touch-action:manipulation}.map-layer{pointer-events:none}
+.edge{stroke:#78928b;stroke-width:3.1;fill:none;stroke-linecap:round}.edge.active{stroke:#dc831b;stroke-width:5}.edge.route{stroke:#078163;stroke-width:7}
+.edge-tag{fill:#fffdf6;stroke:#d6e1d8;stroke-width:1.2}.edge-tag.active{fill:#ffebbc;stroke:#d68c29}.edge-tag.route{fill:#d7f7e7;stroke:#119278}
+.weight{font-size:16px;fill:#294b42;font-weight:850;text-anchor:middle;dominant-baseline:central}.active + .weight{fill:#804000}
+.node{cursor:pointer}.node .n-ring{fill:#fffdf6;stroke:#82978d;stroke-width:2.3}.node .n-text{fill:#35534c;font-size:24px;font-weight:900;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.node.frontier .n-ring{fill:#fff6dd;stroke:#b47d31}.node.frontier .n-text{fill:#7a4b19}.node.settled .n-ring{fill:#d0efdf;stroke:#168465}.node.settled .n-text{fill:#08644d}.node.current .n-ring{fill:#3456bd;stroke:#244496}.node.current .n-text{fill:white}
+.node.route .n-ring{fill:#087b60;stroke:#065a46}.node.route .n-text{fill:white}
+.node:hover .n-ring,.node:focus-visible .n-ring{stroke:#3354bb;stroke-width:4}.node:focus{outline:none}.node-hit{fill:transparent}
+.legend{gap:8px 16px;flex-wrap:wrap;padding:12px 17px;font-size:12px;color:var(--mute);font-weight:650}.legend span{display:inline-flex;align-items:center;gap:6px}.swatch{width:10px;height:10px;border-radius:50%;border:1px solid #a8b5ad;background:#f5f6ef}.swatch.pending{background:#fff1cc;border-color:#bf8b41}.swatch.fixed{background:#c9ecd9;border-color:#308868}.swatch.current{background:#3f5fc8;border-color:#3f5fc8}
+.side{padding:16px 18px;display:flex;flex-direction:column;gap:12px}.side .card-top{padding:0}.quiet{border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--mute);padding:7px 10px;font-weight:750;font-size:12px}.quiet:hover{background:#eff7f0;color:var(--deep)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.step{border-radius:10px;background:#f2f5f0;color:#576d64;font-size:12px;font-weight:780;padding:7px 5px;text-align:center;white-space:nowrap}.step.active{background:var(--mint);color:var(--deep)}
+.task{min-height:209px;border:1px solid #e1ede3;border-radius:15px;background:#f6faf5;padding:13px 14px 14px}.task h3{font-size:21px;margin:0 0 5px;font-weight:900;line-height:1.3}.task p{margin:0 0 9px;color:var(--mute);font-size:13px}
+.quick-nodes{gap:6px;flex-wrap:wrap;margin-top:9px}.node-key{background:white;border:1px solid #bfd7ca;border-radius:9px;color:var(--deep);height:34px;min-width:36px;font-weight:850}.node-key:hover{background:var(--mint)}
+.formula{display:inline-flex;background:var(--sun);color:#75441a;border-radius:7px;font-size:12px;font-weight:850;padding:3px 7px;margin-bottom:9px}
+.form-inputs{display:flex;gap:9px;flex-wrap:wrap}.form-inputs label{display:flex;flex-direction:column;gap:3px;color:var(--mute);font-size:11px;font-weight:750}
+.form-inputs input{width:88px;height:34px;border:1px solid #a7c7b9;border-radius:8px;background:white;color:var(--ink);padding:2px 7px;font-weight:800}
+.form-actions{display:flex;gap:7px;align-items:center;margin-top:9px;flex-wrap:wrap}.primary{background:var(--green);border:1px solid var(--green);color:white;border-radius:9px;padding:7px 12px;font-weight:850;font-size:13px}.primary:hover{background:var(--deep)}
+.notice{border-radius:12px;background:#edf5f0;color:var(--deep);font-size:13px;padding:9px 11px;min-height:54px;display:flex;align-items:center}.notice[data-kind="error"]{background:#fff0e6;color:#934412}.notice[data-kind="hint"]{background:var(--sky);color:#30499e}
+.tools{gap:8px;justify-content:space-between;margin-top:auto}.tools small{color:var(--mute);font-size:12px}.tools .quiet{font-size:13px}
+.route-chip{gap:5px;flex-wrap:wrap;margin:7px 0}.route-chip span{padding:2px 7px;background:#d8f1e2;color:var(--deep);font-size:13px;font-weight:850;border-radius:7px}.route-chip i{font-style:normal;color:var(--mute);font-weight:800}
+.medal{display:inline-flex;background:#fff0cc;color:#80460c;border-radius:7px;font-size:12px;font-weight:850;padding:3px 7px;margin-bottom:7px}
+.stats-card{margin:17px 0 12px;padding:12px 17px 14px}.stats-card .card-top{padding:0 0 9px}.stats-card .card-top small{color:var(--mute);font-size:12px}
+.table-shell{overflow-x:auto}.stats-table{border-collapse:separate;border-spacing:3px;width:100%;min-width:355px;font-size:13px;text-align:center;table-layout:fixed}
+.stats-table th,.stats-table td{background:#f5f7f3;padding:4px 5px;border-radius:6px}.stats-table th:first-child{width:110px;text-align:left;padding-left:8px;background:transparent;color:var(--mute);white-space:nowrap;font-weight:700}
+.stats-table thead th{color:#3d5f55;font-weight:900}.stats-table .fixed{background:#e1f3e8;color:#0a694f}.stats-table .live{background:#e4ebff;color:#2e46a7}.stats-table .changing{background:#fff0cf;color:#855016}
+footer{padding:3px 0 20px;color:var(--mute);font-size:12px}
+.confetti{pointer-events:none;position:absolute;inset:0;overflow:hidden}.card.map-card{position:relative}.confetti b{position:absolute;left:var(--x);top:-14px;width:9px;height:12px;background:var(--c);border-radius:3px;animation:fall 1.5s var(--delay) ease-in forwards}@keyframes fall{to{transform:translate(var(--shift),400px) rotate(660deg);opacity:0}}
+@media(max-width:950px){.hero{align-items:flex-start;flex-direction:column;gap:12px}.board{grid-template-columns:minmax(0,1.43fr) minmax(295px,1fr)}.side{padding:14px}.wrap{padding:0 18px}}
+@media(max-width:700px){.board{grid-template-columns:1fr;gap:12px}.wrap{padding:0 12px}.hero{padding:17px 0 14px}.hero p{font-size:13px}.bar .wrap{min-height:56px}.level{padding:6px 9px;font-size:12px}.card{border-radius:17px}.map-frame{margin:0 8px}.card-top,.legend{padding-left:12px;padding-right:12px}.task{min-height:0}.stats-card{padding:12px 9px;margin-top:12px}.stats-card .card-top small{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}.confetti{display:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bike" viewBox="0 0 32 32">
+    <path d="M10 22h12l3-8-3-5h-4m-7 7H7l-3 5m9-6h7l-2 7M8 11h6v5H8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="7" cy="23" r="3" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="25" cy="23" r="3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+  </symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="m12 2 2.9 6.2 6.8 1-4.9 4.9 1.1 6.9-5.9-3.3L6 21l1.1-6.9-4.8-4.9 6.7-1z" fill="currentColor"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 22s7-7 7-13a7 7 0 1 0-14 0c0 6 7 13 7 13Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" fill="currentColor"/></symbol>
+  <symbol id="flag" viewBox="0 0 24 24"><path d="M5 22V3m0 1c5-4 9 4 15 0v11c-6 4-10-4-15 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<header class="bar"><div class="wrap">
+  <div class="brand"><span class="logo"><svg aria-hidden="true"><use href="#bike"/></svg></span> 算法练习场</div>
+  <div class="record"><svg aria-hidden="true"><use href="#star"/></svg><span id="record">已通关 0 / 3</span></div>
+</div></header>
+<main class="wrap">
+  <div class="hero">
+    <div><div class="eyebrow">DIJKSTRA · 城市配送</div>
+      <div class="game-title"><h1>路口骑士</h1><svg aria-hidden="true"><use href="#star"/></svg></div>
+      <p>午高峰订单来了！用迪杰斯特拉算法找出最快的送餐路线。</p>
+    </div>
+    <nav id="levels" class="levels" aria-label="选择关卡"></nav>
+  </div>
+  <div class="board">
+    <section class="card map-card" aria-labelledby="map-title">
+      <div class="card-top"><div><div class="head-line"><svg aria-hidden="true"><use href="#pin"/></svg><h2 id="map-title">送餐地图</h2></div><div class="scenario" id="scenario"></div></div><span class="quiet" aria-hidden="true">边权 · 分钟</span></div>
+      <div class="map-frame"><svg id="map" viewBox="0 0 700 388" aria-label="可点击的有向路网"></svg></div>
+      <div class="legend" aria-label="路口状态图例">
+        <span><b class="swatch"></b>尚未到达</span><span><b class="swatch pending"></b>距离暂定</span><span><b class="swatch fixed"></b>距离已确定</span><span><b class="swatch current"></b>当前路口</span>
+      </div>
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+    </section>
+    <section class="card side" aria-labelledby="mission-title">
+      <div class="card-top"><div class="head-line"><svg aria-hidden="true"><use href="#flag"/></svg><h2 id="mission-title">配送任务</h2></div><button type="button" class="quiet" id="restart">重开本关</button></div>
+      <div class="steps" aria-label="算法步骤"><span class="step">① 选最小路口</span><span class="step">② 更新邻居</span><span class="step">③ 回溯路线</span></div>
+      <div class="task" id="task"></div>
+      <div class="notice" id="notice" role="status"></div>
+      <div class="tools"><button type="button" class="quiet" id="hint">💡 提示</button><small id="settled-count"></small></div>
+    </section>
+  </div>
+  <section class="card stats-card" aria-labelledby="stats-title">
+    <div class="card-top"><h2 id="stats-title">算法记录板</h2><small>距离从餐馆 S 算起，前驱记录到达该路口的上一个路口。</small></div>
+    <div class="table-shell"><table class="stats-table" id="stats" aria-label="各路口的暂定距离、前驱和状态"></table></div>
+  </section>
+  <footer>每关都从餐馆 S 出发，送到顾客 T。箭头表示通行方向，边权为非负数。</footer>
+</main>
+<script>
+"use strict";
+
+const levels = [
+  {
+    title:"街区热身", story:"三条路线都能到达顾客，哪条用时最短？",
+    points:{S:[85,206],A:[261,111],B:[260,301],C:[448,111],T:[613,211]},
+    edges:[["S","A",2],["S","B",3],["A","C",2],["A","T",8,0,18],["B","T",3,0,17],["C","T",3,9,-15]]
+  },
+  {
+    title:"午高峰改道", story:"B → T 的预计耗时涨到 6 分钟，重新规划路线。",
+    points:{S:[85,206],A:[261,111],B:[260,301],C:[448,111],T:[613,211]},
+    edges:[["S","A",2],["S","B",3],["A","C",2],["A","T",8,0,18],["B","T",6,0,17,"traffic"],["C","T",3,9,-15]]
+  },
+  {
+    title:"夜间加急", story:"遇到距离并列的路口，试试不同的选择顺序。",
+    points:{S:[75,207],A:[215,106],B:[215,295],C:[360,106],D:[360,295],E:[480,207],T:[622,207]},
+    edges:[["S","A",3],["S","B",3],["A","C",3],["B","C",2,-27,-1],["B","D",2,0,17],["C","E",2,9,-13],["D","E",2,5,17],["E","T",3],["D","T",8,0,17]]
+  }
+];
+const source = "S";
+const target = "T";
+const $ = id => document.getElementById(id);
+const recordKey = "route-rider-v1-wins";
+let wins = new Set();
+try {
+  const saved = JSON.parse(localStorage.getItem(recordKey) || "[]");
+  if (Array.isArray(saved)) wins = new Set(saved.filter(i => Number.isInteger(i) && levels[i]));
+} catch {
+  // In restricted browser contexts, the game still runs with in-memory progress.
+}
+let currentLevel = 0;
+let game;
+
+function newGame() {
+  const level = levels[currentLevel];
+  const nodes = Object.keys(level.points);
+  game = {
+    level,nodes,
+    dist:Object.fromEntries(nodes.map(n => [n,n === source ? 0 : Infinity])),
+    prev:Object.fromEntries(nodes.map(n => [n,null])),
+    settled:new Set(),
+    phase:"pick", current:null, queue:[], back:[], changes:0, mistakes:0, hints:0,
+    message:"起点距离为 0。先选中餐馆 S。", kind:"info"
+  };
+  $("confetti").innerHTML = "";
+  render();
+}
+
+function distance(value) { return Number.isFinite(value) ? value : "∞"; }
+
+function feedback(message,kind="info") {
+  game.message = message;
+  game.kind = kind;
+  showFeedback();
+}
+
+function showFeedback() {
+  $("notice").textContent = game.message;
+  $("notice").dataset.kind = game.kind;
+}
+
+function incorrect(message) {
+  game.mistakes++;
+  feedback(message,"error");
+}
+
+function selectNode(node) {
+  if (game.phase === "trace") {
+    traceNode(node);
+    return;
+  }
+  if (game.phase !== "pick") return;
+  if (game.settled.has(node)) {
+    incorrect(node + " 的最短距离已经确定。请从尚未确定的路口中选择。");
+    return;
+  }
+  const pending = game.nodes.filter(n => !game.settled.has(n));
+  const min = Math.min(...pending.map(n => game.dist[n]));
+  if (!Number.isFinite(game.dist[node]) || game.dist[node] !== min) {
+    incorrect(node + " 的暂定距离为 " + distance(game.dist[node]) + "。请从未确定的路口中选最小的一个。");
+    return;
+  }
+  game.current = node;
+  game.settled.add(node);
+  if (node === target) {
+    game.phase = "trace";
+    game.back = [target];
+    feedback("顾客 T 已被选中，最短耗时已确定。现在从 T 沿前驱往回走。");
+  } else {
+    game.queue = game.level.edges.filter(([u,v]) => u === node && !game.settled.has(v));
+    if (game.queue.length) {
+      game.phase = "relax";
+      feedback("已确定 " + node + " 的最短距离。沿出边检查每个未确定的邻居。");
+    } else {
+      game.current = null;
+      feedback("已确定 " + node + " 的最短距离。它没有需要更新的邻居。");
+    }
+  }
+  render();
+}
+
+function relax(update) {
+  if (game.phase !== "relax") return;
+  const [u,v,weight] = game.queue[0];
+  const candidate = game.dist[u] + weight;
+  const improves = candidate < game.dist[v];
+  if (update && !improves) {
+    incorrect("候选距离必须严格小于原值，才更新距离和前驱。");
+    return;
+  }
+  if (!update && improves) {
+    incorrect("这条边提供了更短的路线。请填写新的距离和前驱。");
+    return;
+  }
+  if (update) {
+    const raw = $("new-distance").value.trim();
+    const predecessor = $("new-prev").value.trim().toUpperCase();
+    if (raw === "" || Number(raw) !== candidate) {
+      incorrect("新距离等于「到 " + u + " 的距离」加上「" + u + " → " + v + " 的边权」。");
+      $("new-distance").focus({preventScroll:true});
+      return;
+    }
+    if (predecessor !== u) {
+      incorrect("前驱是这条候选路线到达 " + v + " 之前经过的路口。");
+      $("new-prev").focus({preventScroll:true});
+      return;
+    }
+    game.dist[v] = candidate;
+    game.prev[v] = u;
+    game.changes++;
+    feedback(v + " 的距离更新为 " + candidate + "，前驱记为 " + u + "。");
+  } else if (candidate === game.dist[v]) {
+    feedback("两条路线耗时相同，按本关规则保留已记录的前驱。");
+  } else {
+    feedback("候选距离更大，" + v + " 的距离与前驱继续保留。");
+  }
+  game.queue.shift();
+  if (!game.queue.length) {
+    game.phase = "pick";
+    game.current = null;
+    game.message += " 现在选下一个路口。";
+  }
+  render();
+}
+
+function traceNode(node) {
+  const tail = game.back[game.back.length-1];
+  if (game.prev[tail] !== node) {
+    incorrect("查看记录板中 " + tail + " 下方的「前驱」一行，再选一次。");
+    return;
+  }
+  game.back.push(node);
+  if (node === source) {
+    game.phase = "win";
+    game.current = null;
+    wins.add(currentLevel);
+    try { localStorage.setItem(recordKey,JSON.stringify([...wins])); } catch {}
+    feedback("订单送达！算法记录板保留了本轮的距离和前驱。");
+    celebrate();
+  } else {
+    feedback("找到 " + tail + " 的前驱 " + node + "。继续回溯。");
+  }
+  render();
+}
+
+function hint() {
+  if (game.phase === "win") return;
+  game.hints++;
+  if (game.phase === "pick") {
+    const pending = game.nodes.filter(n => !game.settled.has(n));
+    const minimum = Math.min(...pending.map(n => game.dist[n]));
+    const tied = pending.filter(n => game.dist[n] === minimum);
+    feedback("在未确定的路口里，最小暂定距离为 " + minimum +
+      " 分钟（" + tied.join("、") + "）。" + (tied.length > 1 ? "并列时任选一个。" : ""),"hint");
+  } else if (game.phase === "relax") {
+    const [u,v,w] = game.queue[0];
+    const candidate = game.dist[u] + w;
+    feedback("比较 " + game.dist[u] + " + " + w + " = " + candidate +
+      " 和 " + v + " 的原值 " + distance(game.dist[v]) + "。只有更小才更新。","hint");
+  } else {
+    const node = game.back[game.back.length-1];
+    feedback("在记录板找到 " + node + " 这一列，沿它的前驱 " + game.prev[node] + " 回走。","hint");
+  }
+}
+
+const mapBackground = `
+  <defs>
+    <pattern id="grid" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M35 0H0v35" fill="none" stroke="#dbeadc" stroke-width="1"/></pattern>
+    <marker id="arrow" viewBox="0 0 11 10" refX="9" refY="5" markerWidth="11" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0l11 5-11 5z" fill="#6c8981"/></marker>
+    <marker id="arrow-active" viewBox="0 0 14 12" refX="12" refY="6" markerWidth="14" markerHeight="12" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0l14 6-14 6z" fill="#dc831b"/></marker>
+    <marker id="arrow-route" viewBox="0 0 15 13" refX="13" refY="6.5" markerWidth="15" markerHeight="13" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0l15 6.5-15 6.5z" fill="#078163"/></marker>
+    <g id="tree"><path d="M0 8v9" stroke="#7c9274" stroke-width="3" stroke-linecap="round"/><path d="M0-10a10 10 0 0 1 10 10 10 10 0 0 1-20 0A10 10 0 0 1 0-10Z" fill="#a8cda4"/><path d="M0-6a6 6 0 0 1 6 6" fill="none" stroke="#c7dfb9" stroke-width="2" stroke-linecap="round"/></g>
+  </defs>
+  <g class="map-layer" aria-hidden="true">
+    <rect width="700" height="388" fill="#e9f4e9"/><rect width="700" height="388" fill="url(#grid)"/>
+    <path d="M0 60h170l40-30h310l46 26h134M0 337h152l36 20h332l38-28h142M39 0v115l-18 42v124l24 47v60M663 0v103l16 23v155l-19 27v80" fill="none" stroke="#f8fcf5" stroke-width="10"/>
+    <path d="M533 0c-14 27 4 49 41 58 37 8 65-5 82 10 16 13 15 27 44 29V0Z" fill="#cbe9eb"/>
+    <path d="M555 13q27 6 57 0m9 21q25-5 55 1" fill="none" stroke="#a8d8df" stroke-width="2" stroke-linecap="round"/>
+    <rect x="76" y="30" width="99" height="50" rx="15" fill="#d5e9cc"/><rect x="525" y="310" width="112" height="51" rx="15" fill="#d5e9cc"/>
+    <path d="M80 72q25-36 81-31m369 305q46-37 99-22" fill="none" stroke="#eef6df" stroke-width="4"/>
+    <use href="#tree" x="98" y="47"/><use href="#tree" x="129" y="64"/><use href="#tree" x="157" y="52"/>
+    <use href="#tree" x="548" y="326"/><use href="#tree" x="581" y="345"/><use href="#tree" x="609" y="325"/>
+    <use href="#tree" x="68" y="311"/><use href="#tree" x="193" y="183"/><use href="#tree" x="480" y="339"/>
+    <g fill="#f2dfbf" stroke="#dbcbad" stroke-width="1.5">
+      <rect x="273" y="50" width="28" height="20" rx="4"/><rect x="313" y="50" width="41" height="20" rx="4"/>
+      <rect x="115" y="254" width="27" height="23" rx="4"/><rect x="139" y="286" width="31" height="17" rx="4"/>
+      <rect x="574" y="119" width="29" height="17" rx="4"/><rect x="615" y="125" width="25" height="21" rx="4"/>
+      <rect x="296" y="338" width="28" height="22" rx="4"/><rect x="333" y="338" width="39" height="22" rx="4"/>
+    </g>
+    <g fill="#f4e8d7" stroke="#dbcfbb" stroke-width="1.4">
+      <rect x="382" y="52" width="36" height="19" rx="4"/><rect x="218" y="35" width="25" height="25" rx="4"/>
+      <rect x="473" y="52" width="32" height="18" rx="4"/><rect x="655" y="260" width="25" height="24" rx="4"/>
+    </g>
+  </g>`;
+
+function currentEdge() {
+  return game.phase === "relax" ? game.queue[0] : null;
+}
+
+function classForNode(node) {
+  if (game.back.includes(node)) return "route";
+  if (game.current === node) return "current";
+  if (game.settled.has(node)) return "settled";
+  return Number.isFinite(game.dist[node]) ? "frontier" : "";
+}
+
+function renderMap() {
+  const {points,edges} = game.level;
+  const active = currentEdge();
+  let roads = "", labels = "", nodes = "";
+  const routeEdge = (u,v) => game.back.some((node,i) => node === v && game.back[i+1] === u);
+  for (const [u,v,w,dx=0,dy=-15,style] of edges) {
+    const [x,y] = points[u], [X,Y] = points[v];
+    const len = Math.hypot(X-x,Y-y), ux = (X-x)/len, uy = (Y-y)/len;
+    const path = "M" + (x+25*ux) + " " + (y+25*uy) + "L" + (X-28*ux) + " " + (Y-28*uy);
+    const focus = active && active[0] === u && active[1] === v;
+    const route = routeEdge(u,v);
+    const state = route ? "route" : focus || style === "traffic" ? "active" : "";
+    const arrow = state ? "arrow-" + state : "arrow";
+    roads += '<path class="edge ' + state + '" d="' + path + '" marker-end="url(#' + arrow + ')"/>';
+    const mx = (x+X)/2 + dx, my = (y+Y)/2 + dy;
+    labels += '<rect class="edge-tag ' + state + '" x="' + (mx-16) + '" y="' + (my-12) + '" width="32" height="24" rx="9"/>' +
+      '<text class="weight" x="' + mx + '" y="' + my + '">' + w + '</text>';
+  }
+  const clickable = game.phase === "pick" || game.phase === "trace";
+  for (const [n,[x,y]] of Object.entries(points)) {
+    const name = n === source ? "餐馆" : n === target ? "顾客" : "路口";
+    const state = classForNode(n);
+    const role = clickable ? 'role="button" tabindex="0"' : 'role="img"';
+    nodes += '<g class="node ' + state + '" ' + role + ' data-node="' + n + '" aria-label="' +
+      name + ' ' + n + '，距离 ' + distance(game.dist[n]) + '" transform="translate(' + x + ' ' + y + ')">' +
+      '<circle class="node-hit" r="30"/><circle class="n-ring" r="23"/><text class="n-text" x="0" y="0">' + n + '</text>' +
+      (n === source || n === target ? '<rect y="29" x="-26" width="52" height="24" rx="8" fill="#f9fbf4" stroke="#d4e4d7"/>' +
+      '<text x="0" y="41" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="850" fill="#45655a">' + name + '</text>' : '') +
+      '</g>';
+  }
+  let rider = "";
+  if (game.phase === "win" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const trip = game.back.slice().reverse().map(n => points[n].join(" ")).join(" L");
+    rider = '<g aria-hidden="true" pointer-events="none" color="#185245">' +
+      '<circle r="16" fill="#ffc55a" stroke="#fff" stroke-width="2"/>' +
+      '<use href="#bike" x="-13" y="-13" width="26" height="26"/>' +
+      '<animateMotion dur="1.6s" fill="remove" path="M' + trip + '"/>' +
+      '<set attributeName="visibility" to="hidden" begin="1.6s" fill="freeze"/></g>';
+  }
+  $("map").innerHTML = mapBackground + '<g aria-hidden="true">' + roads + labels + '</g>' + nodes + rider;
+}
+
+function nodeButtons(nodes=game.nodes) {
+  return '<div class="quick-nodes" aria-label="路口快捷按钮">' + nodes.map(n =>
+    '<button type="button" class="node-key" data-node="' + n + '" aria-label="选择路口 ' + n + '">' + n + '</button>').join("") + '</div>';
+}
+
+function pathChips(sequence) {
+  return '<div class="route-chip" aria-label="' + sequence.join(" 到 ") + '">' +
+    sequence.map(n => '<span>' + n + '</span>').join('<i aria-hidden="true">→</i>') + '</div>';
+}
+
+function renderTask() {
+  const phase = game.phase;
+  const stage = {pick:0,relax:1,trace:2,win:2}[phase];
+  document.querySelectorAll(".step").forEach((el,i) => {
+    el.classList.toggle("active",i === stage);
+    if (i === stage) el.setAttribute("aria-current","step");
+    else el.removeAttribute("aria-current");
+  });
+  let html;
+  if (phase === "pick") {
+    html = "<h3>选择下一个路口</h3><p>从距离尚未确定的路口中，选暂定距离最小的一个。</p>" + nodeButtons();
+  } else if (phase === "relax") {
+    const [u,v,w] = currentEdge();
+    html = "<h3>检查 " + u + " → " + v + "</h3><p>比较候选距离和原值。更短时，更新距离并记录前驱。</p>" +
+      '<div class="formula">到 ' + u + ' 的距离 ' + game.dist[u] + ' ＋ 边权 ' + w + '　｜　' + v + ' 原值 ' + distance(game.dist[v]) + '</div>' +
+      '<form id="relax-form" autocomplete="off" novalidate><div class="form-inputs">' +
+      '<label>新距离（分钟）<input id="new-distance" aria-label="新距离（分钟）" type="number" min="0" step="1" placeholder="填数字" inputmode="numeric"></label>' +
+      '<label>前驱路口<input id="new-prev" aria-label="前驱路口" type="text" maxlength="1" placeholder="填字母" autocapitalize="characters" spellcheck="false"></label>' +
+      '</div><div class="form-actions"><button class="primary" type="submit">更新距离和前驱</button>' +
+      '<button class="quiet" type="button" data-action="keep">保留原值</button></div></form>';
+  } else if (phase === "trace") {
+    const tail = game.back[game.back.length-1];
+    html = "<h3>回溯到餐馆</h3><p>从 T 逆着路线回走。现在请选 <strong>" + tail + "</strong> 的前驱。</p>" +
+      '<p>目前找到的正向路线</p>' + pathChips(game.back.slice().reverse()) + nodeButtons();
+  } else {
+    const path = game.back.slice().reverse();
+    html = '<span class="medal">★ 配送完成</span><h3>最快用时 ' + game.dist[target] + ' 分钟</h3>' +
+      pathChips(path) + '<p>更新 ' + game.changes + ' 次 · 尝试纠错 ' + game.mistakes + ' 次 · 使用提示 ' + game.hints + ' 次</p>' +
+      (currentLevel+1 < levels.length ? '<button type="button" class="primary" data-action="next">挑战下一关 →</button>' :
+      '<button type="button" class="primary" data-action="replay">回到第一关 ↺</button>');
+  }
+  $("task").innerHTML = html;
+  $("hint").hidden = phase === "win";
+}
+
+function renderLevels() {
+  $("levels").innerHTML = levels.map((level,i) => '<button type="button" class="level" data-level="' + i + '"' +
+    (currentLevel === i ? ' aria-current="step"' : "") + '><span class="num">' + (i+1) + '</span>' +
+    level.title + (wins.has(i) ? '<span class="done" aria-label="已通关">✓</span>' : "") + '</button>').join("");
+  $("record").textContent = "已通关 " + wins.size + " / " + levels.length;
+  $("scenario").textContent = game.level.story;
+}
+
+function renderStats() {
+  const active = currentEdge();
+  const classFor = n => active && active[1] === n ? "changing" : game.current === n ? "live" : game.settled.has(n) ? "fixed" : "";
+  const rows = [
+    ["当前距离",n => distance(game.dist[n])],
+    ["前驱",n => game.prev[n] || "—"],
+    ["状态",n => game.settled.has(n) ? "已确定" : Number.isFinite(game.dist[n]) ? "暂定" : "未到达"]
+  ];
+  $("stats").innerHTML = '<thead><tr><th scope="col">路口</th>' +
+    game.nodes.map(n => '<th scope="col" class="' + classFor(n) + '">' + n + '</th>').join("") + '</tr></thead><tbody>' +
+    rows.map(([name,value]) => '<tr><th scope="row">' + name + '</th>' +
+      game.nodes.map(n => '<td class="' + classFor(n) + '">' + value(n) + '</td>').join("") + '</tr>').join("") + '</tbody>';
+  $("settled-count").textContent = "已确定 " + game.settled.size + " / " + game.nodes.length + " 个路口";
+}
+
+function render() {
+  const old = document.activeElement;
+  const wasInGame = old && (old.closest("#map") || old.closest("#task"));
+  const wasTab = old && old.closest("#levels");
+  renderMap();
+  renderLevels();
+  renderTask();
+  renderStats();
+  showFeedback();
+  if (wasTab) $("levels").querySelector('[aria-current="step"]').focus({preventScroll:true});
+  if (wasInGame) {
+    const field = $("new-distance") || $("task").querySelector("button");
+    if (field) field.focus({preventScroll:true});
+  }
+}
+
+function celebrate() {
+  const colors = ["#09866a","#fab748","#3866c9","#76bc86"];
+  $("confetti").innerHTML = Array.from({length:24},(_,i) =>
+    '<b style="--x:' + (5+i*3.9) + '%;--delay:' + (i%5)*65 + 'ms;--c:' + colors[i%4] +
+    ';--shift:' + ((i%7)-3)*16 + 'px"></b>').join("");
+}
+
+function changeLevel(index) {
+  currentLevel = index;
+  newGame();
+}
+
+$("levels").addEventListener("click",event => {
+  const button = event.target.closest("[data-level]");
+  if (button && Number(button.dataset.level) !== currentLevel) changeLevel(Number(button.dataset.level));
+});
+$("map").addEventListener("click",event => {
+  const node = event.target.closest("[data-node]");
+  if (node) selectNode(node.dataset.node);
+});
+$("map").addEventListener("keydown",event => {
+  const node = event.target.closest("[data-node]");
+  if (node && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    selectNode(node.dataset.node);
+  }
+});
+$("task").addEventListener("click",event => {
+  const node = event.target.closest("[data-node]");
+  if (node) selectNode(node.dataset.node);
+  const action = event.target.closest("[data-action]")?.dataset.action;
+  if (action === "keep") relax(false);
+  if (action === "next") changeLevel(currentLevel+1);
+  if (action === "replay") changeLevel(0);
+});
+$("task").addEventListener("submit",event => { event.preventDefault(); relax(true); });
+$("hint").addEventListener("click",hint);
+$("restart").addEventListener("click",newGame);
+newGame();
+</script>
+</body>
+</html>
